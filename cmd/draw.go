@@ -91,29 +91,31 @@ func makeUuid() uuid.UUID {
 
 }
 
-func makeDrawRange(drawRequest drawInput) []int {
-	var results []int
-	fmt.Println(drawRequest)
-	for drawRequest.StartDraw <= drawRequest.EndDraw {
+func makeDrawRange(drawRequest drawInput) drawResults {
+	var drawres drawResults
 
-		calculatedSeed := calculateSeed(drandResult, makeUuid())
+	drawres.Request = drawRequest
+	drawres.Metadata.DrandSeed = drandResult
+	for drawres.Request.StartDraw <= drawres.Request.EndDraw {
+		calculatedSeed := calculateSeed(drawres.Metadata.DrandSeed, makeUuid())
 		rand.Seed(calculatedSeed)
-		newrand := rand.Intn(drawRequest.Max-drawRequest.Min) + drawRequest.Min
-		if drawRequest.PutBack {
-			if !drawInResultsAlready(results, newrand) {
-				results = append(results, newrand)
-			} else if drawInResultsAlready(results, newrand) {
-				drawRequest.StartDraw = drawRequest.StartDraw - 1
+		newrand := rand.Intn(drawres.Request.Max-drawres.Request.Min) + drawRequest.Min
+		if drawres.Request.PutBack {
+			if !drawInResultsAlready(drawres.Numbers, newrand) {
+				drawres.Numbers = append(drawres.Numbers, newrand)
+			} else if drawInResultsAlready(drawres.Numbers, newrand) {
+				drawres.Request.StartDraw = drawres.Request.StartDraw - 1
+
 			}
 		} else {
 			fmt.Printf("draw(%d): putback not defined. we put every result in here \n", drawRequest.StartDraw)
-			results = append(results, newrand)
+			drawres.Numbers = append(drawres.Numbers, newrand)
 		}
-		drawRequest.StartDraw = drawRequest.StartDraw + 1
+		drawres.Request.StartDraw = drawres.Request.StartDraw + 1
 
 	}
-	fmt.Printf("tasked to draw %d numbers, drew %d \n", drawRequest.EndDraw, len(results))
-	return results
+	drawres.Metadata.CreatedAt = time.Now().Unix()
+	return drawres
 }
 
 func makeASCIIinputforDieHarder(filename string, maxint int, maxsize string) {

@@ -19,9 +19,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/spf13/cobra"
 )
 
@@ -51,49 +52,42 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
+
 	rootCmd.AddCommand(serverCmd)
 	serverCmd.Flags().Int("port", 1337, "Port to serve web server")
 
 }
 
 func serve(port int) {
-	fmt.Printf("[*] Going to serve at %d[*]\n", port)
+	fmt.Printf("Serving starting at :%d \n", port)
 	http.HandleFunc("/seed", seed)
 	http.HandleFunc("/info", info)
-	http.HandleFunc("/getRound", getRound)
-	http.HandleFunc("/doDraw", doDraw)
+	http.HandleFunc("/history", history)
+
+	http.HandleFunc("/draw", doDraw)
 	serveString := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(serveString, nil)
-}
-
-func getRound(w http.ResponseWriter, req *http.Request) {
-
-	msg := fmt.Sprintf("latest getRound is %v", drandResult.Round())
-
-	fmt.Fprintf(w, msg)
+	http.ListenAndServe(serveString, handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))
 }
 
 func info(w http.ResponseWriter, req *http.Request) {
-
-	msg := fmt.Sprintf("latest random is %v", drandResult.Randomness())
-
-	fmt.Fprintf(w, msg)
+	writeResponse(w, drandResult)
 }
 
 func doDraw(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "POST" {
+
 		reqBody, _ := ioutil.ReadAll(req.Body)
 		var draw drawInput
+
 		err := json.Unmarshal(reqBody, &draw)
 
 		if err != nil {
 			fmt.Println(err)
 		}
 		theDraw := makeDrawRange(draw)
+		drawHistory = append(drawHistory, theDraw)
 
-		msg := fmt.Sprintf("%v\n", theDraw)
-		fmt.Fprintf(w, msg)
-
+		writeResponse(w, theDraw)
 	}
 
 }
@@ -102,15 +96,14 @@ func seed(w http.ResponseWriter, r *http.Request) {
 
 	newUuid := makeUuid()
 	calculatedSeed := calculateSeed(drandResult, newUuid)
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "application/json")
-	newSeed := make(map[string]interface{})
-	newSeed["drandPublic"] = drandResult.Randomness()
-	newSeed["calculatedSeed"] = calculatedSeed
-	jsonResp, err := json.Marshal(newSeed)
-	if err != nil {
-		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
-	}
-	w.Write(jsonResp)
+	response := make(map[string]interface{})
+	response["drandPublic"] = drandResult.Randomness()
+	response["calculatedSeed"] = calculatedSeed
+
+	writeResponse(w, response)
 	return
+}
+
+func history(w http.ResponseWriter, r *http.Request) {
+	writeResponse(w, drawHistory)
 }

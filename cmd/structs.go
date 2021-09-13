@@ -32,4 +32,19 @@ type newSeed struct {
 	CalculateSeed int    `json:"CalculatedSeed"`
 }
 
+type Metadata struct {
+	CreatedAt    int64         `json:"CreatedAt"`
+	DrawNumber   int           `json: "DrawNumber"`
+	DrandSeed    client.Result `json: "DrandSeed"`
+	ComputedSeed int           `json: "computedSeed"`
+}
+
+type drawResults struct {
+	Request  drawInput `json: "DrawInput"`
+	Metadata Metadata  `json: "Metadata"`
+	Numbers  []int     `json: "Numbers"`
+}
+
 var drandResult client.Result
+
+var drawHistory []drawResults

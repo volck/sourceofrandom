@@ -53,8 +53,8 @@ func getRandomFromDrand(client client.Client, round int) client.Result {
 }
 
 func getWatcher(c client.Client) {
+	fmt.Println("initializing watcher...")
 	for {
 		drandResult = <-c.Watch(context.Background())
-		fmt.Println(drandResult.Round())
 	}
 }

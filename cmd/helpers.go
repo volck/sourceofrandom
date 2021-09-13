@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -20,6 +23,16 @@ func getSize(filename string) int64 {
 	}
 
 	return stat.Size()
+}
+
+func writeResponse(w http.ResponseWriter, response interface{}) {
+
+	w.Header().Set("Content-Type", "application/json")
+	jsonResp, err := json.Marshal(response)
+	if err != nil {
+		log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+	}
+	w.Write(jsonResp)
 }
 
 func isMaxSize(maxsize int64, filename string) bool {
